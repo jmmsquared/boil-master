@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Boil Master" />
+  <meta name="theme-color" content="#C8401A" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Boil Master 🦞</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red: #C8401A;
+      --red-dark: #A33215;
+      --red-light: #FEF3EE;
+      --red-border: #F4C4AE;
+      --green-bg: #EAF3DE;
+      --green-text: #3B6D11;
+      --text: #1A1A1A;
+      --text-secondary: #6B6B6B;
+      --bg: #F5F5F5;
+      --card: #FFFFFF;
+      --border: #E0E0E0;
+      --safe-top: env(safe-area-inset-top, 44px);
+      --safe-bottom: env(safe-area-inset-bottom, 20px);
+    }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      display: flex; flex-direction: column;
+      height: 100%; max-width: 430px; margin: 0 auto;
+      background: var(--bg);
+      position: relative; overflow: hidden;
+    }
+
+    /* STATUS BAR SPACER */
+    .status-spacer {
+      height: var(--safe-top);
+      background: var(--red);
+      flex-shrink: 0;
+    }
+
+    /* HEADER */
+    .header {
+      background: var(--red);
+      padding: 10px 16px 14px;
+      flex-shrink: 0;
+    }
+    .header-inner { display: flex; align-items: center; gap: 10px; }
+    .header-back {
+      color: white; font-size: 24px; background: none; border: none;
+      cursor: pointer; padding: 0 4px; display: none; line-height: 1;
+    }
+    .header-back.visible { display: block; }
+    .header-text { flex: 1; }
+    .header h1 { color: white; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+    .header p { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 1px; }
+
+    /* SCREENS */
+    .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    /* SECTION HEADERS */
+    .section-label {
+      padding: 10px 16px 5px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+      text-transform: uppercase; color: var(--text-secondary);
+      background: var(--bg);
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    /* INGREDIENT ROWS */
+    .ingredient-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px;
+      background: var(--card);
+      border-bottom: 0.5px solid var(--border);
+      cursor: pointer; active: background #f0f0f0;
+      transition: background 0.1s;
+    }
+    .ingredient-row:active { background: #F0F0F0; }
+    .ingredient-row input[type=checkbox] {
+      width: 22px; height: 22px; accent-color: var(--red);
+      flex-shrink: 0; cursor: pointer;
+    }
+    .ing-info { flex: 1; }
+    .ing-name { font-size: 15px; color: var(--text); }
+    .ing-note { font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+    .ing-time {
+      font-size: 13px; font-weight: 500;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .ing-time.long { color: var(--red); }
+
+    /* BOTTOM BAR */
+    .bottom-bar {
+      padding: 12px 16px;
+      padding-bottom: calc(12px + var(--safe-bottom));
+      background: var(--card);
+      border-top: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .count-label { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 10px; }
+
+    .btn {
+      width: 100%; padding: 15px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; border: none; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); opacity: 0.85; }
+    .btn-primary { background: var(--red); color: white; }
+    .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .btn-outline {
+      background: transparent; color: var(--red);
+      border: 1.5px solid var(--red);
+      padding: 13px;
+    }
+
+    /* STEP CARDS */
+    .step-card {
+      display: flex; gap: 12px; padding: 14px 16px;
+      background: var(--card);
+      border-bottom: 0.5px solid var(--border);
+    }
+    .step-num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--red); color: white;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-body { flex: 1; }
+    .step-title { font-size: 15px; font-weight: 600; color: var(--text); }
+    .step-desc { font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
+    .step-timing {
+      margin-top: 6px; font-size: 12px; font-weight: 600;
+      color: var(--red);
+    }
+
+    /* TOTAL TIME BAR */
+    .info-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; background: var(--card);
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .info-bar span { font-size: 13px; color: var(--text-secondary); }
+    .info-bar strong { font-size: 13px; color: var(--text); }
+
+    /* TIMER SCREEN */
+    .timer-hero {
+      padding: 24px 16px 16px; text-align: center;
+      background: var(--card); border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .timer-clock { font-size: 64px; font-weight: 300; color: var(--red); letter-spacing: -2px; line-height: 1; }
+    .timer-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+    /* ALERT BANNER */
+    .alert-card {
+      margin: 12px 16px; padding: 14px 16px;
+      background: var(--red-light); border-radius: 14px;
+      border: 2px solid var(--red);
+      display: none;
+    }
+    .alert-card.show { display: block; }
+    .alert-title { font-size: 16px; font-weight: 700; color: var(--red); }
+    .alert-items { font-size: 14px; color: #7A2A10; margin-top: 4px; line-height: 1.6; }
+    .alert-btn {
+      margin-top: 10px; width: 100%; padding: 11px;
+      background: var(--red); color: white;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .alert-btn:active { opacity: 0.85; }
+
+    /* NEXT UP */
+    .next-up-card {
+      margin: 0 16px 12px; padding: 12px 14px;
+      background: var(--card); border-radius: 12px;
+      border: 0.5px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex-shrink:0; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.35;transform:scale(0.65)} }
+    .next-up-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+    .next-up-name { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 1px; }
+
+    /* LIVE STEP CARDS */
+    .live-step {
+      display: flex; gap: 12px; padding: 12px 16px;
+      background: var(--card); border-bottom: 0.5px solid var(--border);
+      transition: opacity 0.3s, background 0.3s;
+    }
+    .live-step.current { background: var(--red-light); }
+    .live-step.past { opacity: 0.4; }
+    .live-step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--red); color: white;
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .live-step.past .live-step-num { background: #ccc; }
+    .live-step-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .live-step-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .live-step-mins { flex-shrink:0; text-align:right; }
+    .live-step-mins .num { font-size: 20px; font-weight: 600; color: var(--red); }
+    .live-step-mins .lbl { font-size: 10px; color: var(--text-secondary); }
+    .live-step.past .live-step-mins .num { color: #aaa; }
+
+    /* ALL DONE */
+    .done-card {
+      margin: 16px; padding: 20px;
+      background: var(--green-bg); border-radius: 14px;
+      text-align: center; display: none;
+    }
+    .done-card.show { display: block; }
+    .done-emoji { font-size: 40px; margin-bottom: 8px; }
+    .done-title { font-size: 18px; font-weight: 700; color: var(--green-text); }
+    .done-sub { font-size: 13px; color: var(--green-text); margin-top: 4px; opacity: 0.8; }
+
+    .btn-row { display: flex; gap: 10px; padding: 12px 16px; padding-bottom: calc(12px + var(--safe-bottom)); background: var(--card); border-top: 0.5px solid var(--border); flex-shrink: 0; }
+    .btn-row .btn { flex: 1; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="status-spacer"></div>
+  <div class="header">
+    <div class="header-inner">
+      <button class="header-back" id="header-back" onclick="handleBack()">‹</button>
+      <div class="header-text">
+        <h1>🦞 Boil Master</h1>
+        <p id="header-sub">Select your ingredients</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Ingredients -->
+  <div id="screen1" class="screen active">
+    <div class="scroll-area" id="ingredient-list"></div>
+    <div class="bottom-bar">
+      <div class="count-label" id="count-label">No ingredients selected</div>
+      <button class="btn btn-primary" id="btn-next" disabled onclick="goToScreen2()">View Cooking Order →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Instructions -->
+  <div id="screen2" class="screen">
+    <div class="info-bar">
+      <span>Total cook time</span>
+      <strong id="total-time-label">—</strong>
+    </div>
+    <div class="scroll-area" id="instructions-list"></div>
+    <div class="bottom-bar">
+      <button class="btn btn-primary" onclick="startCook()">Start Cook 🔥</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Active Timer -->
+  <div id="screen3" class="screen">
+    <div class="timer-hero">
+      <div class="timer-clock" id="timer-clock">0:00</div>
+      <div class="timer-sub">elapsed</div>
+    </div>
+    <div class="scroll-area">
+      <div class="alert-card" id="alert-card">
+        <div class="alert-title">⏰ Time to add!</div>
+        <div class="alert-items" id="alert-items"></div>
+        <button class="alert-btn" onclick="dismissAlert()">✓ Added it!</button>
+      </div>
+      <div class="next-up-card" id="next-up-card">
+        <div class="pulse"></div>
+        <div>
+          <div class="next-up-label">Next up</div>
+          <div class="next-up-name" id="next-up-name">—</div>
+        </div>
+      </div>
+      <div id="live-steps"></div>
+      <div class="done-card" id="done-card">
+        <div class="done-emoji">🎉</div>
+        <div class="done-title">Everything's in the pot!</div>
+        <div class="done-sub">Let it finish and get ready to eat. Time to lay out some newspaper!</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="stopCook()">✕ Stop Cook</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INGREDIENTS = [
+  { id:'seasoning', name:'Crawfish/boil seasoning', section:'Base', cookTime:0, note:'Goes in when water boils — the flavor foundation.' },
+  { id:'lemon',    name:'Lemons (halved)',           section:'Base', cookTime:0, note:'Squeeze and drop in at the start for brightness.' },
+  { id:'onion',    name:'Onions (quartered)',         section:'Base', cookTime:20, note:'Needs a head start — adds sweetness to the broth.' },
+  { id:'garlic',   name:'Garlic (whole heads)',       section:'Base', cookTime:20, note:'Drop in early with onions for depth of flavor.' },
+  { id:'potato',   name:'Potatoes',                   section:'Vegetables', cookTime:20, note:'Red or new potatoes. Take a while to cook through.' },
+  { id:'carrot',   name:'Carrots (chunked)',           section:'Vegetables', cookTime:15, note:'Cut into 2-inch chunks. Soak up seasoning beautifully.' },
+  { id:'corn',     name:'Corn on the cob',             section:'Vegetables', cookTime:10, note:'Cut into halves or thirds. Soaks up all that seasoning!' },
+  { id:'mushroom', name:'Mushrooms',                   section:'Vegetables', cookTime:5,  note:'Whole baby bellas or buttons. Cook fast — don\'t overdo it.' },
+  { id:'sausage',  name:'Andouille/smoked sausage',   section:'Proteins',   cookTime:10, note:'Slice into rounds. Pre-cooked — just heats and flavors the broth.' },
+  { id:'lobster',  name:'Lobster (live)',               section:'Proteins',   cookTime:12, note:'Cook until shell is fully red.' },
+  { id:'crablegs', name:'Crab legs',                   section:'Proteins',   cookTime:8,  note:'Pre-cooked — just needs to heat through and absorb seasoning.' },
+  { id:'crab',     name:'Blue/Dungeness crab (whole)', section:'Proteins',   cookTime:8,  note:'Shell turns bright orange when done.' },
+  { id:'clam',     name:'Clams',                       section:'Proteins',   cookTime:6,  note:'Done when they open — discard any that stay shut.' },
+  { id:'crawfish', name:'Live crawfish',                section:'Proteins',   cookTime:5,  note:'Only 3-5 min! Purge in salted water first.' },
+  { id:'shrimp',   name:'Shrimp (shell-on)',            section:'Proteins',   cookTime:3,  note:'Turn pink and curl = done. Don\'t overcook!' },
+  { id:'egg',      name:'Eggs',                         section:'Extras',     cookTime:12, note:'Hard-boil right in the pot — soak up incredible flavor.' },
+  { id:'artichoke',name:'Artichokes (halved)',           section:'Extras',     cookTime:20, note:'Trim and halve. Takes time but absorbs amazing flavor.' },
+  { id:'brussel',  name:'Brussels sprouts',             section:'Extras',     cookTime:8,  note:'Halved. Controversial but delicious in a boil!' },
+];
+
+const SECTIONS = ['Base','Vegetables','Proteins','Extras'];
+const selected = new Set();
+let cookTimer = null;
+let elapsedSec = 0;
+let cookSteps = [];
+let stepFired = {};
+
+// ── BUILD INGREDIENT LIST ──────────────────────────────────────
+function buildIngredientList() {
+  const list = document.getElementById('ingredient-list');
+  SECTIONS.forEach(sec => {
+    const items = INGREDIENTS.filter(i => i.section === sec);
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = sec;
+    list.appendChild(lbl);
+    items.forEach(ing => {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="checkbox" id="chk_${ing.id}">
+        <div class="ing-info">
+          <div class="ing-name">${ing.name}</div>
+          <div class="ing-note">${ing.note}</div>
+        </div>
+        <div class="ing-time ${ing.cookTime >= 15 ? 'long' : ''}">${ing.cookTime === 0 ? 'At boil' : ing.cookTime + ' min'}</div>`;
+      const cb = row.querySelector('input');
+      cb.addEventListener('change', () => toggleIng(ing.id, cb.checked));
+      row.addEventListener('click', e => { if(e.target !== cb){ cb.checked = !cb.checked; toggleIng(ing.id, cb.checked); } });
+      list.appendChild(row);
+    });
+  });
+}
+
+function toggleIng(id, checked) {
+  checked ? selected.add(id) : selected.delete(id);
+  const n = selected.size;
+  document.getElementById('count-label').textContent = n === 0 ? 'No ingredients selected' : `${n} ingredient${n > 1 ? 's' : ''} selected`;
+  document.getElementById('btn-next').disabled = n === 0;
+}
+
+// ── COOK STEPS ─────────────────────────────────────────────────
+function buildCookSteps() {
+  const items = INGREDIENTS.filter(i => selected.has(i.id));
+  const maxTime = Math.max(...items.map(i => i.cookTime), 0);
+  const map = {};
+  items.forEach(ing => {
+    const addAt = maxTime - ing.cookTime;
+    if (!map[addAt]) map[addAt] = [];
+    map[addAt].push(ing);
+  });
+  return Object.entries(map)
+    .sort((a, b) => +a[0] - +b[0])
+    .map(([t, ings]) => ({ addAtMin: +t, ingredients: ings }));
+}
+
+// ── SCREEN 2 ───────────────────────────────────────────────────
+function goToScreen2() {
+  cookSteps = buildCookSteps();
+  const maxTime = Math.max(...INGREDIENTS.filter(i => selected.has(i.id)).map(i => i.cookTime), 0);
+  document.getElementById('total-time-label').textContent = maxTime + ' min';
+  const list = document.getElementById('instructions-list');
+  list.innerHTML = '';
+  cookSteps.forEach((step, idx) => {
+    const names = step.ingredients.map(i => i.name).join(' + ');
+    const notes = step.ingredients.map(i => i.note).join('  •  ');
+    const minsLeft = maxTime - step.addAtMin;
+    const timing = step.addAtMin === 0 ? 'Add when water reaches a rolling boil' : `Add at the ${step.addAtMin}-minute mark`;
+    const card = document.createElement('div');
+    card.className = 'step-card';
+    card.innerHTML = `
+      <div class="step-num">${idx + 1}</div>
+      <div class="step-body">
+        <div class="step-title">${names}</div>
+        <div class="step-desc">${notes}</div>
+        <div class="step-timing">⏱ ${timing} — cooks for ${minsLeft} min</div>
+      </div>`;
+    list.appendChild(card);
+  });
+  showScreen('screen2');
+  document.getElementById('header-sub').textContent = 'Cooking order';
+  document.getElementById('header-back').classList.add('visible');
+}
+
+// ── START COOK ─────────────────────────────────────────────────
+function startCook() {
+  elapsedSec = 0;
+  stepFired = {};
+  const maxTime = Math.max(...INGREDIENTS.filter(i => selected.has(i.id)).map(i => i.cookTime), 0);
+
+  // Build live steps
+  const liveSteps = document.getElementById('live-steps');
+  liveSteps.innerHTML = '';
+  cookSteps.forEach((step, idx) => {
+    const names = step.ingredients.map(i => i.name).join(' + ');
+    const minsLeft = maxTime - step.addAtMin;
+    const when = step.addAtMin === 0 ? 'Add at boil' : `Add at ${step.addAtMin}:00`;
+    const div = document.createElement('div');
+    div.className = 'live-step';
+    div.id = `ls-${idx}`;
+    div.innerHTML = `
+      <div class="live-step-num">${idx + 1}</div>
+      <div style="flex:1">
+        <div class="live-step-name">${names}</div>
+        <div class="live-step-sub">${when} · ${minsLeft} min cook</div>
+      </div>
+      <div class="live-step-mins">
+        <div class="num" id="lm-${idx}">—</div>
+        <div class="lbl">min left</div>
+      </div>`;
+    liveSteps.appendChild(div);
+  });
+
+  document.getElementById('alert-card').classList.remove('show');
+  document.getElementById('done-card').classList.remove('show');
+  document.getElementById('next-up-card').style.display = 'flex';
+  updateNextUp(maxTime);
+  showScreen('screen3');
+  document.getElementById('header-sub').textContent = 'Cook in progress 🔥';
+  document.getElementById('header-back').classList.remove('visible');
+
+  cookTimer = setInterval(() => {
+    elapsedSec++;
+    const m = Math.floor(elapsedSec / 60);
+    const s = elapsedSec % 60;
+    document.getElementById('timer-clock').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    cookSteps.forEach((step, idx) => {
+      const targetSec = step.addAtMin * 60;
+      if (elapsedSec === targetSec) {
+        stepFired[idx] = true;
+        triggerAlert(step);
+        document.getElementById(`ls-${idx}`).classList.add('current');
+      }
+      if (elapsedSec > targetSec) {
+        const minsLeft = maxTime - step.addAtMin - Math.floor((elapsedSec - targetSec) / 60);
+        const el = document.getElementById(`lm-${idx}`);
+        if (el) el.textContent = Math.max(0, minsLeft);
+        document.getElementById(`ls-${idx}`).classList.remove('current');
+        document.getElementById(`ls-${idx}`).classList.add('past');
+      }
+    });
+
+    updateNextUp(maxTime);
+
+    // Check all done
+    const allFired = cookSteps.every((_, i) => stepFired[i]);
+    if (allFired) {
+      const last = cookSteps[cookSteps.length - 1];
+      if (elapsedSec >= (last.addAtMin + (maxTime - last.addAtMin)) * 60) {
+        clearInterval(cookTimer);
+        document.getElementById('done-card').classList.add('show');
+        document.getElementById('next-up-card').style.display = 'none';
+        document.getElementById('header-sub').textContent = 'All done! 🎉';
+      }
+    }
+  }, 1000);
+}
+
+function updateNextUp(maxTime) {
+  const next = cookSteps.find(step => elapsedSec < step.addAtMin * 60);
+  if (next) {
+    const secsLeft = next.addAtMin * 60 - elapsedSec;
+    const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+    const names = next.ingredients.map(i => i.name).join(' + ');
+    document.getElementById('next-up-name').textContent = `${names} in ${m}:${s.toString().padStart(2, '0')}`;
+  } else {
+    document.getElementById('next-up-name').textContent = 'All ingredients added!';
+  }
+}
+
+function triggerAlert(step) {
+  const names = step.ingredients.map(i => `➕ ${i.name}`).join('\n');
+  document.getElementById('alert-items').innerText = names;
+  document.getElementById('alert-card').classList.add('show');
+  playChime();
+  // Vibrate if supported
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+}
+
+function dismissAlert() {
+  document.getElementById('alert-card').classList.remove('show');
+}
+
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      osc.start(t); osc.stop(t + 0.45);
+    });
+  } catch (e) {}
+}
+
+function stopCook() {
+  if (cookTimer) clearInterval(cookTimer);
+  cookTimer = null; elapsedSec = 0;
+  document.getElementById('timer-clock').textContent = '0:00';
+  goToScreen1();
+}
+
+function goToScreen1() {
+  showScreen('screen1');
+  document.getElementById('header-sub').textContent = 'Select your ingredients';
+  document.getElementById('header-back').classList.remove('visible');
+}
+
+function handleBack() {
+  if (document.getElementById('screen2').classList.contains('active')) goToScreen1();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+buildIngredientList();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
