@@ -373,7 +373,8 @@ function buildCookSteps() {
   const maxTime = Math.max(...items.map(i => i.cookTime), 0);
   const map = {};
   items.forEach(ing => {
-    const addAt = maxTime - ing.cookTime;
+    // const addAt = maxTime - ing.cookTime;
+    const addAt = ing.cookTime === 0 ? 0 : maxTime - ing.cookTime;
     if (!map[addAt]) map[addAt] = [];
     map[addAt].push(ing);
   });
