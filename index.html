@@ -510,9 +510,27 @@ function dismissAlert() {
   document.getElementById('alert-card').classList.remove('show');
 }
 
-function playChime() {
+// iOS requires AudioContext to be created inside a user-gesture.
+// We create it once on first tap and reuse it for all chimes.
+let audioCtx = null;
+
+function unlockAudio() {
+  if (audioCtx) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Silent buffer to fully unlock on iOS
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch (e) {}
+}
+
+  function playChime() {
+  try {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     [523, 659, 784, 1047].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -525,6 +543,9 @@ function playChime() {
     });
   } catch (e) {}
 }
+
+// Unlock audio on the very first tap anywhere in the app
+document.addEventListener('touchstart', unlockAudio, { once: true });
 
 function stopCook() {
   if (cookTimer) clearInterval(cookTimer);
