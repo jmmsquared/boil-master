@@ -465,8 +465,7 @@ function startCook() {
   // Show precook banner if there are at-boil ingredients
   const precookCard = document.getElementById('precook-card');
   if (precookStep) {
-    const names = precookStep.ingredients.map(i => `➕ ${i.name}`).join('
-');
+    const names = precookStep.ingredients.map(i => `➕ ${i.name}`).join('\n');
     document.getElementById('precook-items').innerText = names;
     precookCard.classList.add('show');
     document.getElementById('header-sub').textContent = 'Bring water to a boil 🫧';
