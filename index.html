@@ -171,6 +171,16 @@
     .timer-clock { font-size: 64px; font-weight: 300; color: var(--red); letter-spacing: -2px; line-height: 1; }
     .timer-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
 
+    /* PRECOOK BANNER */
+    .precook-card {
+      margin: 12px 16px; padding: 14px 16px; background: #FFFBEA;
+      border-radius: 14px; border: 2px solid #E6A817; display: none;
+    }
+    .precook-card.show { display: block; }
+    .precook-title { font-size: 16px; font-weight: 700; color: #7A5500; }
+    .precook-sub { font-size: 13px; color: #7A5500; margin-top: 4px; margin-bottom: 8px; }
+    .precook-items { font-size: 14px; color: #5A3D00; line-height: 1.8; white-space: pre-line; }
+
     /* ALERT BANNER */
     .alert-card {
       margin: 12px 16px; padding: 14px 16px;
@@ -279,6 +289,12 @@
       <div class="timer-sub">elapsed</div>
     </div>
     <div class="scroll-area">
+      <div class="precook-card" id="precook-card">
+        <div class="precook-title">🔥 Water is boiling!</div>
+        <div class="precook-sub">Add these to the pot now, then start the timer:</div>
+        <div class="precook-items" id="precook-items"></div>
+        <button class="alert-btn" onclick="beginTimer()">✓ Added — Start Timer!</button>
+      </div>
       <div class="alert-card" id="alert-card">
         <div class="alert-title">⏰ Time to add!</div>
         <div class="alert-items" id="alert-items"></div>
@@ -373,7 +389,6 @@ function buildCookSteps() {
   const maxTime = Math.max(...items.map(i => i.cookTime), 0);
   const map = {};
   items.forEach(ing => {
-    // const addAt = maxTime - ing.cookTime;
     const addAt = ing.cookTime === 0 ? 0 : maxTime - ing.cookTime;
     if (!map[addAt]) map[addAt] = [];
     map[addAt].push(ing);
@@ -417,13 +432,16 @@ function startCook() {
   stepFired = {};
   const maxTime = Math.max(...INGREDIENTS.filter(i => selected.has(i.id)).map(i => i.cookTime), 0);
 
-  // Build live steps
+  // Separate precook (addAtMin===0) from timed steps
+  const precookStep = cookSteps.find(s => s.addAtMin === 0);
+  const timedSteps = cookSteps.filter(s => s.addAtMin > 0);
+
+  // Build live steps (timed only — precook shown separately)
   const liveSteps = document.getElementById('live-steps');
   liveSteps.innerHTML = '';
-  cookSteps.forEach((step, idx) => {
+  timedSteps.forEach((step, idx) => {
     const names = step.ingredients.map(i => i.name).join(' + ');
     const minsLeft = maxTime - step.addAtMin;
-    const when = step.addAtMin === 0 ? 'Add at boil' : `Add at ${step.addAtMin}:00`;
     const div = document.createElement('div');
     div.className = 'live-step';
     div.id = `ls-${idx}`;
@@ -431,7 +449,7 @@ function startCook() {
       <div class="live-step-num">${idx + 1}</div>
       <div style="flex:1">
         <div class="live-step-name">${names}</div>
-        <div class="live-step-sub">${when} · ${minsLeft} min cook</div>
+        <div class="live-step-sub">Add at ${step.addAtMin}:00 · ${minsLeft} min cook</div>
       </div>
       <div class="live-step-mins">
         <div class="num" id="lm-${idx}">—</div>
@@ -442,11 +460,37 @@ function startCook() {
 
   document.getElementById('alert-card').classList.remove('show');
   document.getElementById('done-card').classList.remove('show');
-  document.getElementById('next-up-card').style.display = 'flex';
-  updateNextUp(maxTime);
+  document.getElementById('next-up-card').style.display = 'none';
+
+  // Show precook banner if there are at-boil ingredients
+  const precookCard = document.getElementById('precook-card');
+  if (precookStep) {
+    const names = precookStep.ingredients.map(i => `➕ ${i.name}`).join('
+');
+    document.getElementById('precook-items').innerText = names;
+    precookCard.classList.add('show');
+    document.getElementById('header-sub').textContent = 'Bring water to a boil 🫧';
+  } else {
+    precookCard.classList.remove('show');
+    beginTimer();  // no precook step, start immediately
+  }
+
   showScreen('screen3');
-  document.getElementById('header-sub').textContent = 'Cook in progress 🔥';
   document.getElementById('header-back').classList.remove('visible');
+}
+
+function beginTimer() {
+  const maxTime = Math.max(...INGREDIENTS.filter(i => selected.has(i.id)).map(i => i.cookTime), 0);
+  const timedSteps = cookSteps.filter(s => s.addAtMin > 0);
+
+  document.getElementById('precook-card').classList.remove('show');
+  document.getElementById('next-up-card').style.display = 'flex';
+  document.getElementById('header-sub').textContent = 'Cook in progress 🔥';
+
+  // Mark precook step as already handled
+  cookSteps.forEach((step, idx) => { if (step.addAtMin === 0) stepFired[idx] = true; });
+
+  updateNextUp(maxTime);
 
   cookTimer = setInterval(() => {
     elapsedSec++;
@@ -454,10 +498,10 @@ function startCook() {
     const s = elapsedSec % 60;
     document.getElementById('timer-clock').textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
-    cookSteps.forEach((step, idx) => {
+    timedSteps.forEach((step, idx) => {
       const targetSec = step.addAtMin * 60;
       if (elapsedSec === targetSec) {
-        stepFired[idx] = true;
+        stepFired[cookSteps.indexOf(step)] = true;
         triggerAlert(step);
         document.getElementById(`ls-${idx}`).classList.add('current');
       }
@@ -475,8 +519,8 @@ function startCook() {
     // Check all done
     const allFired = cookSteps.every((_, i) => stepFired[i]);
     if (allFired) {
-      const last = cookSteps[cookSteps.length - 1];
-      if (elapsedSec >= (last.addAtMin + (maxTime - last.addAtMin)) * 60) {
+      const last = timedSteps[timedSteps.length - 1];
+      if (last && elapsedSec >= (last.addAtMin + (maxTime - last.addAtMin)) * 60) {
         clearInterval(cookTimer);
         document.getElementById('done-card').classList.add('show');
         document.getElementById('next-up-card').style.display = 'none';
@@ -487,7 +531,7 @@ function startCook() {
 }
 
 function updateNextUp(maxTime) {
-  const next = cookSteps.find(step => elapsedSec < step.addAtMin * 60);
+  const next = cookSteps.find(step => step.addAtMin > 0 && elapsedSec < step.addAtMin * 60);
   if (next) {
     const secsLeft = next.addAtMin * 60 - elapsedSec;
     const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
@@ -503,8 +547,6 @@ function triggerAlert(step) {
   document.getElementById('alert-items').innerText = names;
   document.getElementById('alert-card').classList.add('show');
   playChime();
-  // Vibrate if supported
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
 }
 
 function dismissAlert() {
@@ -528,7 +570,7 @@ function unlockAudio() {
   } catch (e) {}
 }
 
-  function playChime() {
+function playChime() {
   try {
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
