@@ -199,6 +199,13 @@
     .timer-clock { font-size: 64px; font-weight: 300; color: var(--red); letter-spacing: -2px; line-height: 1; }
     .timer-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
 
+    /* CHEF NOTE */
+    .chef-note {
+      text-align: center; font-size: 13px; color: var(--text-secondary);
+      padding: 10px 16px 6px; line-height: 1.5;
+    }
+    .chef-note strong { color: var(--text); }
+
     /* PRECOOK BANNER */
     .precook-card {
       margin: 12px 16px; padding: 14px 16px; background: #FFFBEA;
@@ -353,6 +360,7 @@
         <div class="done-sub">Let it finish and get ready to eat. Time to lay out some newspaper!</div>
       </div>
     </div>
+    <div class="chef-note">🍺 <strong>Note to Chef</strong> — cooking is hot work, stay hydrated with a cold beer!</div>
     <div class="btn-row">
       <button class="btn btn-outline" onclick="stopCook()">✕ Stop Cook</button>
     </div>
@@ -364,7 +372,7 @@ const INGREDIENTS = [
   { id:'seasoning', name:'Crawfish/boil seasoning', section:'Base',       cookTime:0,  note:'Goes in when water boils — the flavor foundation.',          qty:0.5,  unit:'tbsp', round:0.5  },
   { id:'lemon',     name:'Lemons (halved)',          section:'Base',       cookTime:0,  note:'Squeeze and drop in at the start for brightness.',           qty:0.5,  unit:'',     round:0.5  },
   { id:'onion',     name:'Onions (quartered)',        section:'Base',       cookTime:20, note:'Needs a head start — adds sweetness to the broth.',          qty:0.25, unit:'',     round:0.25 },
-  { id:'garlic',    name:'Garlic (heads, split into cloves)',      section:'Base',       cookTime:20, note:'Drop in early with onions for depth of flavor.',             qty:0.25, unit:'head', round:0.25 },
+  { id:'garlic',    name:'Garlic (whole heads)',      section:'Base',       cookTime:20, note:'Drop in early with onions for depth of flavor.',             qty:0.25, unit:'head', round:0.25 },
   { id:'potato',    name:'Potatoes',                  section:'Vegetables', cookTime:20, note:'Red or new potatoes. Take a while to cook through.',         qty:0.5,  unit:'lb',   round:0.25 },
   { id:'carrot',    name:'Carrots (chunked)',          section:'Vegetables', cookTime:15, note:'Cut into 2-inch chunks. Soak up seasoning beautifully.',     qty:0.5,  unit:'',     round:1    },
   { id:'corn',      name:'Corn on the cob',            section:'Vegetables', cookTime:10, note:'Cut into halves or thirds. Soaks up all that seasoning!',    qty:0.5,  unit:'ear',  round:0.5  },
