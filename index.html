@@ -74,6 +74,28 @@
 
     .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
+    /* GUEST SELECTOR */
+    .guest-bar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 12px 16px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .guest-label { font-size: 14px; color: var(--text); flex: 1; font-weight: 500; }
+    .guest-controls { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--red); border-radius: 10px; overflow: hidden; }
+    .guest-btn {
+      width: 38px; height: 38px; border: none; background: var(--red);
+      color: white; font-size: 22px; font-weight: 300; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; line-height: 1;
+    }
+    .guest-btn:active { opacity: 0.75; }
+    .guest-count {
+      width: 44px; text-align: center; font-size: 18px; font-weight: 600;
+      color: var(--red); background: var(--card); border: none;
+      padding: 0; height: 38px; line-height: 38px;
+    }
+    .guest-note { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
     /* SECTION HEADERS */
     .section-label {
       padding: 10px 16px 5px;
@@ -100,6 +122,12 @@
     .ing-info { flex: 1; }
     .ing-name { font-size: 15px; color: var(--text); }
     .ing-note { font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+    .ing-qty {
+      font-size: 12px; font-weight: 600; color: var(--red);
+      background: var(--red-light); border-radius: 6px;
+      padding: 2px 7px; flex-shrink: 0; white-space: nowrap;
+    }
+
     .ing-time {
       font-size: 13px; font-weight: 500;
       color: var(--text-secondary);
@@ -263,6 +291,17 @@
 
   <!-- SCREEN 1: Ingredients -->
   <div id="screen1" class="screen active">
+    <div class="guest-bar">
+      <div>
+        <div class="guest-label">👥 How many guests?</div>
+        <div class="guest-note">Quantities update automatically</div>
+      </div>
+      <div class="guest-controls">
+        <button class="guest-btn" onclick="changeGuests(-1)">−</button>
+        <div class="guest-count" id="guest-count">4</div>
+        <button class="guest-btn" onclick="changeGuests(1)">+</button>
+      </div>
+    </div>
     <div class="scroll-area" id="ingredient-list"></div>
     <div class="bottom-bar">
       <div class="count-label" id="count-label">No ingredients selected</div>
@@ -322,32 +361,62 @@
 
 <script>
 const INGREDIENTS = [
-  { id:'seasoning', name:'Crawfish/boil seasoning', section:'Base', cookTime:0, note:'Goes in when water boils — the flavor foundation.' },
-  { id:'lemon',    name:'Lemons (halved)',           section:'Base', cookTime:0, note:'Squeeze and drop in at the start for brightness.' },
-  { id:'onion',    name:'Onions (quartered)',         section:'Base', cookTime:20, note:'Needs a head start — adds sweetness to the broth.' },
-  { id:'garlic',   name:'Garlic (whole heads)',       section:'Base', cookTime:20, note:'Drop in early with onions for depth of flavor.' },
-  { id:'potato',   name:'Potatoes',                   section:'Vegetables', cookTime:20, note:'Red or new potatoes. Take a while to cook through.' },
-  { id:'carrot',   name:'Carrots (chunked)',           section:'Vegetables', cookTime:15, note:'Cut into 2-inch chunks. Soak up seasoning beautifully.' },
-  { id:'corn',     name:'Corn on the cob',             section:'Vegetables', cookTime:10, note:'Cut into halves or thirds. Soaks up all that seasoning!' },
-  { id:'mushroom', name:'Mushrooms',                   section:'Vegetables', cookTime:5,  note:'Whole baby bellas or buttons. Cook fast — don\'t overdo it.' },
-  { id:'sausage',  name:'Andouille/smoked sausage',   section:'Proteins',   cookTime:10, note:'Slice into rounds. Pre-cooked — just heats and flavors the broth.' },
-  { id:'lobster',  name:'Lobster (live)',               section:'Proteins',   cookTime:12, note:'Cook until shell is fully red.' },
-  { id:'crablegs', name:'Crab legs',                   section:'Proteins',   cookTime:8,  note:'Pre-cooked — just needs to heat through and absorb seasoning.' },
-  { id:'crab',     name:'Blue/Dungeness crab (whole)', section:'Proteins',   cookTime:8,  note:'Shell turns bright orange when done.' },
-  { id:'clam',     name:'Clams',                       section:'Proteins',   cookTime:6,  note:'Done when they open — discard any that stay shut.' },
-  { id:'crawfish', name:'Live crawfish',                section:'Proteins',   cookTime:5,  note:'Only 3-5 min! Purge in salted water first.' },
-  { id:'shrimp',   name:'Shrimp (shell-on)',            section:'Proteins',   cookTime:3,  note:'Turn pink and curl = done. Don\'t overcook!' },
-  { id:'egg',      name:'Eggs',                         section:'Extras',     cookTime:12, note:'Hard-boil right in the pot — soak up incredible flavor.' },
-  { id:'artichoke',name:'Artichokes (halved)',           section:'Extras',     cookTime:20, note:'Trim and halve. Takes time but absorbs amazing flavor.' },
-  { id:'brussel',  name:'Brussels sprouts',             section:'Extras',     cookTime:8,  note:'Halved. Controversial but delicious in a boil!' },
+  { id:'seasoning', name:'Crawfish/boil seasoning', section:'Base',       cookTime:0,  note:'Goes in when water boils — the flavor foundation.',          qty:0.5,  unit:'tbsp', round:0.5  },
+  { id:'lemon',     name:'Lemons (halved)',          section:'Base',       cookTime:0,  note:'Squeeze and drop in at the start for brightness.',           qty:0.5,  unit:'',     round:0.5  },
+  { id:'onion',     name:'Onions (quartered)',        section:'Base',       cookTime:20, note:'Needs a head start — adds sweetness to the broth.',          qty:0.25, unit:'',     round:0.25 },
+  { id:'garlic',    name:'Garlic (whole heads)',      section:'Base',       cookTime:20, note:'Drop in early with onions for depth of flavor.',             qty:0.25, unit:'head', round:0.25 },
+  { id:'potato',    name:'Potatoes',                  section:'Vegetables', cookTime:20, note:'Red or new potatoes. Take a while to cook through.',         qty:0.5,  unit:'lb',   round:0.25 },
+  { id:'carrot',    name:'Carrots (chunked)',          section:'Vegetables', cookTime:15, note:'Cut into 2-inch chunks. Soak up seasoning beautifully.',     qty:0.5,  unit:'',     round:1    },
+  { id:'corn',      name:'Corn on the cob',            section:'Vegetables', cookTime:10, note:'Cut into halves or thirds. Soaks up all that seasoning!',    qty:0.5,  unit:'ear',  round:0.5  },
+  { id:'mushroom',  name:'Mushrooms',                  section:'Vegetables', cookTime:5,  note:"Whole baby bellas — cook fast, don't overdo it.",            qty:3,    unit:'oz',   round:1    },
+  { id:'sausage',   name:'Andouille/smoked sausage',  section:'Proteins',   cookTime:10, note:'Slice into rounds. Pre-cooked — heats and flavors the broth.',qty:3,   unit:'oz',   round:1    },
+  { id:'lobster',   name:'Lobster (live)',              section:'Proteins',   cookTime:12, note:'Cook until shell is fully red.',                             qty:0.5,  unit:'',     round:0.5  },
+  { id:'crablegs',  name:'Crab legs',                  section:'Proteins',   cookTime:8,  note:'Pre-cooked — heats through and absorbs seasoning.',          qty:0.5,  unit:'lb',   round:0.25 },
+  { id:'crab',      name:'Blue/Dungeness crab (whole)',section:'Proteins',   cookTime:8,  note:'Shell turns bright orange when done.',                       qty:0.5,  unit:'',     round:0.5  },
+  { id:'clam',      name:'Clams',                      section:'Proteins',   cookTime:6,  note:'Done when they open — discard any that stay shut.',          qty:4,    unit:'',     round:1    },
+  { id:'crawfish',  name:'Live crawfish',               section:'Proteins',   cookTime:5,  note:'Only 3-5 min! Purge in salted water first.',                 qty:1,    unit:'lb',   round:0.25 },
+  { id:'shrimp',    name:'Shrimp (shell-on)',           section:'Proteins',   cookTime:3,  note:"Turn pink and curl = done. Don't overcook!",                qty:0.33, unit:'lb',   round:0.25 },
+  { id:'egg',       name:'Eggs',                        section:'Extras',     cookTime:12, note:'Hard-boil right in the pot — soak up incredible flavor.',   qty:1,    unit:'',     round:1    },
+  { id:'artichoke', name:'Artichokes (halved)',          section:'Extras',     cookTime:20, note:'Trim and halve. Takes time but absorbs amazing flavor.',    qty:0.5,  unit:'',     round:0.5  },
+  { id:'brussel',   name:'Brussels sprouts',            section:'Extras',     cookTime:8,  note:'Halved. Controversial but delicious in a boil!',            qty:3,    unit:'oz',   round:1    },
 ];
 
 const SECTIONS = ['Base','Vegetables','Proteins','Extras'];
+let guests = 4;
 const selected = new Set();
 let cookTimer = null;
 let elapsedSec = 0;
 let cookSteps = [];
 let stepFired = {};
+
+// ── GUEST HELPERS ──────────────────────────────────────────────
+function changeGuests(delta) {
+  guests = Math.max(1, Math.min(50, guests + delta));
+  document.getElementById('guest-count').textContent = guests;
+  refreshQuantities();
+}
+
+function calcQty(ing) {
+  const raw = ing.qty * guests;
+  const r = ing.round;
+  return Math.max(r, Math.round(raw / r) * r);
+}
+
+function formatQty(ing) {
+  const q = calcQty(ing);
+  const whole = Math.floor(q);
+  const frac = q - whole;
+  const fracStr = frac === 0.5 ? '½' : frac === 0.25 ? '¼' : frac === 0.75 ? '¾' : '';
+  const numStr = whole === 0 ? fracStr : fracStr ? whole + fracStr : '' + whole;
+  return ing.unit ? numStr + ' ' + ing.unit : numStr;
+}
+
+function refreshQuantities() {
+  INGREDIENTS.forEach(ing => {
+    const el = document.getElementById('qty_' + ing.id);
+    if (el) el.textContent = formatQty(ing);
+  });
+}
 
 // ── BUILD INGREDIENT LIST ──────────────────────────────────────
 function buildIngredientList() {
@@ -367,7 +436,10 @@ function buildIngredientList() {
           <div class="ing-name">${ing.name}</div>
           <div class="ing-note">${ing.note}</div>
         </div>
-        <div class="ing-time ${ing.cookTime >= 15 ? 'long' : ''}">${ing.cookTime === 0 ? 'At boil' : ing.cookTime + ' min'}</div>`;
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <div class="ing-qty" id="qty_${ing.id}">${formatQty(ing)}</div>
+          <div class="ing-time ${ing.cookTime >= 15 ? 'long' : ''}">${ing.cookTime === 0 ? 'At boil' : ing.cookTime + ' min'}</div>
+        </div>`;
       const cb = row.querySelector('input');
       cb.addEventListener('change', () => toggleIng(ing.id, cb.checked));
       row.addEventListener('click', e => { if(e.target !== cb){ cb.checked = !cb.checked; toggleIng(ing.id, cb.checked); } });
@@ -393,23 +465,35 @@ function buildCookSteps() {
     if (!map[addAt]) map[addAt] = [];
     map[addAt].push(ing);
   });
+  // Add 1-minute delay between the at-boil step and the first timed ingredient
+  const hasPrecook = Object.keys(map).includes('0');
   return Object.entries(map)
     .sort((a, b) => +a[0] - +b[0])
-    .map(([t, ings]) => ({ addAtMin: +t, ingredients: ings }));
+    .map(([t, ings]) => ({ addAtMin: hasPrecook && +t > 0 ? +t + 1 : +t, ingredients: ings }));
 }
 
 // ── SCREEN 2 ───────────────────────────────────────────────────
 function goToScreen2() {
   cookSteps = buildCookSteps();
   const maxTime = Math.max(...INGREDIENTS.filter(i => selected.has(i.id)).map(i => i.cookTime), 0);
-  document.getElementById('total-time-label').textContent = maxTime + ' min';
+  const hasPrecook = cookSteps.some(s => s.addAtMin === 0);
+  const totalTime = maxTime + (hasPrecook ? 1 : 0);
+  document.getElementById('total-time-label').textContent = totalTime + ' min';
   const list = document.getElementById('instructions-list');
   list.innerHTML = '';
   cookSteps.forEach((step, idx) => {
-    const names = step.ingredients.map(i => i.name).join(' + ');
+    const names = step.ingredients.map(i => formatQty(i) + ' ' + i.name).join(' + ');
     const notes = step.ingredients.map(i => i.note).join('  •  ');
     const minsLeft = maxTime - step.addAtMin;
-    const timing = step.addAtMin === 0 ? 'Add when water reaches a rolling boil' : `Add at the ${step.addAtMin}-minute mark`;
+    const isFirstTimed = step.addAtMin > 0 && cookSteps.find(s => s.addAtMin > 0) === step && cookSteps.some(s => s.addAtMin === 0);
+    let timing;
+    if (step.addAtMin === 0) {
+      timing = 'Add when water reaches a rolling boil';
+    } else if (isFirstTimed) {
+      timing = `Add at the ${step.addAtMin}-min mark (1 min after starting timer)`;
+    } else {
+      timing = `Add at the ${step.addAtMin}-minute mark`;
+    }
     const card = document.createElement('div');
     card.className = 'step-card';
     card.innerHTML = `
@@ -440,7 +524,7 @@ function startCook() {
   const liveSteps = document.getElementById('live-steps');
   liveSteps.innerHTML = '';
   timedSteps.forEach((step, idx) => {
-    const names = step.ingredients.map(i => i.name).join(' + ');
+    const names = step.ingredients.map(i => formatQty(i) + ' ' + i.name).join(' + ');
     const minsLeft = maxTime - step.addAtMin;
     const div = document.createElement('div');
     div.className = 'live-step';
@@ -465,7 +549,7 @@ function startCook() {
   // Show precook banner if there are at-boil ingredients
   const precookCard = document.getElementById('precook-card');
   if (precookStep) {
-    const names = precookStep.ingredients.map(i => `➕ ${i.name}`).join('\n');
+    const names = precookStep.ingredients.map(i => '➕ ' + formatQty(i) + ' ' + i.name).join('\n');
     document.getElementById('precook-items').innerText = names;
     precookCard.classList.add('show');
     document.getElementById('header-sub').textContent = 'Bring water to a boil 🫧';
